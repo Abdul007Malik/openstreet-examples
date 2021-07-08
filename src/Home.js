@@ -19,6 +19,9 @@ const Home = (props) => {
         <Link to="example-5">
           <li>Example 5 (Apply Layers)</li>
         </Link>
+        <Link to="example-6">
+          <li>Example 6 (Upload Geo json)</li>
+        </Link>
       </ol>
     </div>
   );

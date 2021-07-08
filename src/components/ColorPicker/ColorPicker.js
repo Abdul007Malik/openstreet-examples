@@ -3,7 +3,7 @@ import useOutside from "../../shared/hooks/outsideClick";
 import colors from "./Color.json";
 import "./ColorPicker.css";
 
-const ColorPicker = ({ color, isLight, defaultColor = "#000000", onChange, title }) => {
+const ColorPicker = ({ name, color, isLight, defaultColor = "#000000", onChange, title }) => {
   const [open, setOpen] = useState(false),
     [value, setValue] = useState(defaultColor),
     ref = useRef(), isUndefined = typeof color == "undefined";
@@ -35,6 +35,7 @@ const ColorPicker = ({ color, isLight, defaultColor = "#000000", onChange, title
         <label>{title}</label>
         <div className="cp-swatch" onClick={() => setOpen(!open)}>
           <Box color={value} />
+          <input value={value} name={name} hidden readOnly onChange={(e) => !e.target.value && setValue(defaultColor)} />
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import Example2 from "./Examples/Example2";
 import Example3 from "./Examples/Example3";
 import Example4 from "./Examples/Example4";
 import Example5 from "./Examples/Example5";
+import Example6 from "./Examples/Example6";
 
 class App extends Component {
   render() {
@@ -22,6 +23,7 @@ class App extends Component {
             <Route path="/example-3" component={Example3}></Route>
             <Route path="/example-4" component={Example4}></Route>
             <Route path="/example-5" component={Example5}></Route>
+            <Route path="/example-6" component={Example6}></Route>
             <Route exact path="/" component={Home}></Route>
           </Switch>
         </div>
