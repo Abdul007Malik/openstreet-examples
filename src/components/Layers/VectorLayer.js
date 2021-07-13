@@ -28,6 +28,12 @@ const VectorLayer = ({
                 new Style({
                     stroke: new Stroke({ color: style.stroke, width: 2 }),
                     fill: new Fill({ color: style.fill }),
+                    image: new CircleStyle({
+                        radius: 3,
+                        fill: new Fill({
+                            color: "blue",
+                        }),
+                    }),
                 }),
                 new Style({
                     image: new CircleStyle({
@@ -50,17 +56,17 @@ const VectorLayer = ({
             ],
         });
         map.addLayer(vectorLayer.current);
-        select.current = new Select();
-        modify.current = new Modify({ features: select.current.getFeatures() });
-        map.addInteraction(select.current);
-        map.addInteraction(modify.current);
+        // select.current = new Select();
+        // modify.current = new Modify({ features: select.current.getFeatures() });
+        // map.addInteraction(select.current);
+        // map.addInteraction(modify.current);
         vectorLayer.current.setZIndex(zIndex);
 
         return () => {
             if (map) {
                 map.removeLayer(vectorLayer.current);
-                map.removeInteraction(select.current);
-                map.removeInteraction(modify.current);
+                // map.removeInteraction(select.current);
+                // map.removeInteraction(modify.current);
                 vectorLayer.current = null;
             }
         };
@@ -88,6 +94,18 @@ const VectorLayer = ({
             vectorLayer.current.changed();
         }
     }, [style?.stroke, style?.fill]);
+
+
+    // useEffect(() => {
+    //     document.addEventListener("keydown", (e) => {
+    //         if (e.key === "Delete" && vectorLayer.current && select.current?.getFeatures?.()?.length) {
+    //             select.current.getFeatures().forEach(_ => {
+    //                 source.removeFeature(_)
+    //             })
+    //         }
+    //     })
+    // }, [])
+
     return null;
 };
 export default VectorLayer;

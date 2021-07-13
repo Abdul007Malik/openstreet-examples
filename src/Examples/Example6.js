@@ -10,7 +10,12 @@ import OLVectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
 import KML from "ol/format/KML";
-import { DragAndDrop, defaults as defaultInteractions } from "ol/interaction";
+import {
+  Select,
+  Modify,
+  DragAndDrop,
+  defaults as defaultInteractions,
+} from "ol/interaction";
 // import Feature from "ol/Feature";
 import { Circle, Fill, Style, Stroke } from "ol/style";
 import ColorPicker from "../components/ColorPicker/ColorPicker";
@@ -84,6 +89,8 @@ const Example6 = (props) => {
       },
     ]),
     mapRef = useRef(null),
+    select = useRef(null),
+    modify = useRef(null),
     onChangeVisibility = (index) => (e) => {
       setLayers((prev) =>
         Object.assign([], prev, {
@@ -126,7 +133,9 @@ const Example6 = (props) => {
         case "KML":
         case "kml":
           features = new KML(
-            options.extractStyles === false ? { extractStyles: false } : undefined
+            options.extractStyles === false
+              ? { extractStyles: false }
+              : undefined
           ).readFeatures(event.target.result, {
             dataProjection: "EPSG:4326",
             featureProjection: "EPSG:3857",
@@ -225,6 +234,11 @@ const Example6 = (props) => {
       });
     setMap(mapObject);
 
+    select.current = new Select();
+    modify.current = new Modify({ features: select.current.getFeatures() });
+    mapObject.addInteraction(select.current);
+    mapObject.addInteraction(modify.current);
+
     dragAndDropInteraction.on("addfeatures", function (event) {
       setForm((prev) => ({
         ...prev,
@@ -237,7 +251,25 @@ const Example6 = (props) => {
     });
     // mapObject.getView().fit(IndiaLayer.getExtent(), { duration: 300, maxZoom: 21, size: mapObject.getSize() })
 
-    return () => mapObject.setTarget(undefined);
+    // delete key bind
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Delete" && select.current?.getFeatures?.()) {
+        mapObject.getLayers().forEach((layer) => {
+          if (!(layer instanceof OLVectorLayer)) return;
+          select.current.getFeatures().forEach((_) => {
+            let s = layer.getSource();
+            if (s.hasFeature(_)) s.removeFeature(_);
+          });
+        });
+      }
+    });
+
+    return () => {
+      mapObject.setTarget(undefined);
+      // dragAndDropInteraction.off("addfeatures")
+      mapObject.removeInteraction(select.current);
+      mapObject.removeInteraction(modify.current);
+    };
   }, []);
 
   //set source on file change
@@ -283,7 +315,7 @@ const Example6 = (props) => {
       <div className="options">
         {layers.map((_, inx) => {
           return (
-            <div className="opt">
+            <div className="opt" key={inx}>
               <VectorLayer map={map} {..._} />
               <div className="">
                 <input
