@@ -3,16 +3,27 @@ import useOutside from "../../shared/hooks/outsideClick";
 import colors from "./Color.json";
 import "./ColorPicker.css";
 
-const ColorPicker = ({ name, color, isLight, defaultColor = "#000000", onChange, title }) => {
+const ColorPicker = ({
+  name,
+  className,
+  containerClassName,
+  color,
+  isLight,
+  defaultColor = "#000000",
+  onChange,
+  title,
+  disabled
+}) => {
   const [open, setOpen] = useState(false),
     [value, setValue] = useState(defaultColor),
-    ref = useRef(), isUndefined = typeof color == "undefined";
+    ref = useRef(),
+    isUndefined = typeof color == "undefined";
 
-  const onClickColor = c => {
+  const onClickColor = (c) => {
     if (!isUndefined) {
-      if (c !== color) onChange(c)
-    } else setValue(c)
-  }
+      if (c !== color) onChange(c);
+    } else setValue(c);
+  };
 
   useOutside(ref, () => setOpen(false));
 
@@ -24,18 +35,23 @@ const ColorPicker = ({ name, color, isLight, defaultColor = "#000000", onChange,
 
   if (isUndefined) {
     useEffect(() => {
-      if (typeof onChange === "function") onChange(value);
-    }, [value]);
+      if (typeof onChange === "function" && !disabled) onChange(value);
+    }, [value, disabled, onChange]);
   }
 
   return (
-    <div ref={ref} className="cp-container">
-
-      <div className="cp-swatch-head">
+    <div ref={ref} className={`cp-container  ${containerClassName}`}>
+      <div className={`cp-swatch-head ${className}  ${disabled && "disabled"}`}>
         <label>{title}</label>
-        <div className="cp-swatch" onClick={() => setOpen(!open)}>
-          <Box color={value} />
-          <input value={value} name={name} hidden readOnly onChange={(e) => !e.target.value && setValue(defaultColor)} />
+        <div className={`cp-swatch ${disabled && "disabled"}`} onClick={() => setOpen(!open)}>
+          <Box color={value} disabled={disabled} />
+          <input
+            value={value}
+            name={name}
+            hidden
+            readOnly
+            onChange={(e) => !e.target.value && setValue(defaultColor)}
+          />
         </div>
       </div>
 

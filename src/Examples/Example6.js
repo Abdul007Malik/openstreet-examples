@@ -9,15 +9,31 @@ import OSM from "ol/source/OSM";
 import OLVectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
+import KML from "ol/format/KML";
+import { DragAndDrop, defaults as defaultInteractions } from "ol/interaction";
 // import Feature from "ol/Feature";
 import { Circle, Fill, Style, Stroke } from "ol/style";
 import ColorPicker from "../components/ColorPicker/ColorPicker";
 import VectorLayer from "../components/Layers/VectorLayer";
+import JSZip, { file } from "jszip";
 
 const India = require("../geojson/India.json"),
   Spain = require("../geojson/Spain.json"),
-  Egypt = require("../geojson/Egypt.json"),
-  Random = require("../geojson/Random.json");
+  Egypt = require("../geojson/Egypt.json");
+
+function getLayerType(file) {
+  let ext =
+    file.name.substring(file.name.lastIndexOf(".") + 1, file.name.length) ||
+    file.name;
+  switch (ext) {
+    case "kml":
+    case "KML":
+      return "KML";
+
+    default:
+      return "GEOJSON";
+  }
+}
 
 const Example6 = (props) => {
   const [map, setMap] = useState(null),
@@ -34,10 +50,10 @@ const Example6 = (props) => {
             dataProjection: "EPSG:4326",
             featureProjection: "EPSG:3857",
           }),
-          style: { stroke: "#000000", fill: "rgb(0, 0, 0, 0.4)" },
         }),
         visible: true,
-        style: { stroke: "#000000", fill: "rgb(0, 0, 0, 0.4)" },
+        layerType: "GEOJSON",
+        style: { stroke: "rgb(173, 20, 87)", fill: "rgb(235, 128, 174, 0.4)" },
       },
       {
         name: "Spain",
@@ -48,9 +64,10 @@ const Example6 = (props) => {
           }),
         }),
         visible: true,
+        layerType: "GEOJSON",
         style: {
-          stroke: "#000000",
-          fill: "rgb(0, 0, 0, 0.4)",
+          stroke: "rgb(242, 72, 34)",
+          fill: "rgb(228, 159, 144, 0.4)",
         },
       },
       {
@@ -60,13 +77,10 @@ const Example6 = (props) => {
             dataProjection: "EPSG:4326",
             featureProjection: "EPSG:3857",
           }),
-          style: {
-            stroke: "#000000",
-            fill: "rgb(0, 0, 0, 0.4)",
-          },
         }),
         visible: true,
-        style: { stroke: "#000000", fill: "rgb(0, 0, 0, 0.4)" },
+        layerType: "GEOJSON",
+        style: { stroke: "rgb(228, 196, 65)", fill: "rgb(236, 224, 173, 0.4)" },
       },
     ]),
     mapRef = useRef(null),
@@ -98,104 +112,168 @@ const Example6 = (props) => {
         })
       );
     },
+    getSource = (file, event, options = {}) => {
+      if (!file) return null;
+      let features,
+        ext =
+          file.name.substring(
+            file.name.lastIndexOf(".") + 1,
+            file.name.length
+          ) || file.name;
+
+      console.log("extention", ext);
+      switch (ext) {
+        case "KML":
+        case "kml":
+          features = new KML(
+            options.extractStyles === false ? { extractStyles: false } : undefined
+          ).readFeatures(event.target.result, {
+            dataProjection: "EPSG:4326",
+            featureProjection: "EPSG:3857",
+          });
+          break;
+
+        default:
+          features = new GeoJSON().readFeatures(
+            JSON.parse(event.target.result),
+            {
+              dataProjection: "EPSG:4326",
+              featureProjection: "EPSG:3857",
+            }
+          );
+          break;
+      }
+      return new VectorSource({
+        features,
+      });
+    },
     addLayer = (e) => {
       e.preventDefault();
-      console.log(
-        document.querySelector('input[name="layer_name"]')?.value,
-        document.querySelector('input[name="stroke"]')?.value,
-        document.querySelector('input[name="stroke"]')?.value
-      );
-      let source;
-      if (!form.name || !form.file) {
-        return alert("Name or Geo Json file is missing");
+      // console.log(
+      //   document.querySelector('input[name="layer_name"]')?.value,
+      //   document.querySelector('input[name="stroke"]')?.value,
+      //   document.querySelector('input[name="stroke"]')?.value
+      // );
+      let source,
+        name = document.querySelector('input[name="layer_name"]')?.value;
+      if (!name || !form.file) {
+        return alert("Name or file is missing");
       }
-      if (form.file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            console.log(JSON.parse(event.target.result));
-            source = new VectorSource({
-              features: new GeoJSON().readFeatures(
-                JSON.parse(event.target.result),
-                {
-                  dataProjection: "EPSG:4326",
-                  featureProjection: "EPSG:3857",
-                }
-              ),
-            });
-            setLayers((prev) =>
-              prev.concat({
-                name: form.name,
-                source,
-                style: { stroke: form.stroke, fill: form.fill },
-                visible: true,
-              })
-            );
-            setFormLayerSource(null);
-            setForm({});
-          } catch (error) {
-            source = null;
-            console.log(error);
-            return alert("Geo Json file is invalid");
-          }
-        };
-        reader.readAsText(form.file);
-      }
+      // if (form.isDragged) {
+      //   setLayers((prev) =>
+      //     prev.concat({
+      //       name,
+      //       source: form.file,
+      //       extractStyles: form.hasStyles,
+      //       layerType: getLayerType(form.file),
+      //       style: { stroke: form.stroke, fill: form.fill },
+      //       visible: true,
+      //     })
+      //   );
+      //   setFormLayerSource(null);
+      //   setForm({});
+      //   return
+      // }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          // console.log(JSON.parse(event.target.result));
+          source = getSource(form.file, event, {
+            extractStyles: form.hasStyles,
+          });
+          setLayers((prev) =>
+            prev.concat({
+              name,
+              source,
+              extractStyles: form.hasStyles,
+              layerType: getLayerType(form.file),
+              style: { stroke: form.stroke, fill: form.fill },
+              visible: true,
+            })
+          );
+          setFormLayerSource(null);
+          setForm({});
+        } catch (error) {
+          source = null;
+          console.log(error);
+          return alert("Geo Json/kml file is invalid");
+        }
+      };
+      reader.readAsText(form.file);
     },
     onDelete = (index) => {
       setLayers((prev) => prev.filter((_, inx) => inx !== index));
     };
 
+  //init map
   useEffect(() => {
-    let mapObject = new Map({
-      target: mapRef.current,
-      layers: [
-        new TileLayer({
-          source: new OSM(),
+    let dragAndDropInteraction = new DragAndDrop({
+      formatConstructors: [GeoJSON, KML],
+    }),
+      mapObject = new Map({
+        target: mapRef.current,
+        interactions: defaultInteractions().extend([dragAndDropInteraction]),
+        layers: [
+          new TileLayer({
+            source: new OSM(),
+          }),
+        ],
+        view: new View({
+          zoom: 2,
+          center: [0, 0],
         }),
-      ],
-      view: new View({
-        zoom: 2,
-        center: [0, 0],
-      }),
-    });
+      });
     setMap(mapObject);
 
+    dragAndDropInteraction.on("addfeatures", function (event) {
+      setForm((prev) => ({
+        ...prev,
+        file: event.file,
+        isDragged: true,
+        layerType: getLayerType(event.file),
+        hasStyles: getLayerType(event.file) === "KML",
+        fill: (form.fill !== "#000000" && form.fill) || "rgb(0,0,0, 0.4)",
+      }));
+    });
     // mapObject.getView().fit(IndiaLayer.getExtent(), { duration: 300, maxZoom: 21, size: mapObject.getSize() })
 
     return () => mapObject.setTarget(undefined);
   }, []);
 
+  //set source on file change
   useEffect(() => {
+    if (!form.file) return;
     let source;
-    if (form.file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          console.log(JSON.parse(event.target.result));
-          source = new VectorSource({
-            features: new GeoJSON().readFeatures(
-              JSON.parse(event.target.result),
-              {
-                dataProjection: "EPSG:4326",
-                featureProjection: "EPSG:3857",
-              }
-            ),
-          });
-        } catch (error) {
-          source = null;
-          console.log(error);
-        }
-        setFormLayerSource(source);
-      };
-      reader.readAsText(form.file);
-    } else if (!Object.keys(form).length) {
+    // if (form.isDragged) {
+    //   source = new VectorSource({
+    //     features: form.file,
+    //   });
+    //   if (map) map.getView().fit(source.getExtent());
+    //   setFormLayerSource(source);
+    //   return
+    // }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        // debugger;
+        source = getSource(form.file, event, {
+          extractStyles: form.hasStyles,
+        });
+        if (map) map.getView().fit(source.getExtent());
+      } catch (error) {
+        source = null;
+        console.log(error);
+      }
+      setFormLayerSource(source);
+    };
+    reader.readAsText(form.file);
+  }, [form.file, form.hasStyles]);
+
+  //reset form data
+  useEffect(() => {
+    if (!Object.keys(form).length) {
       document.querySelector("form").reset();
     }
-
-    // return () => {
-    //   if(source)
-    // }
   }, [form]);
 
   return (
@@ -207,22 +285,29 @@ const Example6 = (props) => {
           return (
             <div className="opt">
               <VectorLayer map={map} {..._} />
-              <div className="row">
+              <div className="">
                 <input
-                  className="col"
+                  className=""
                   type="checkbox"
                   id={_.name}
                   value={_.name}
                   onChange={onChangeVisibility(inx)}
                   checked={_.visible}
                 />
-                <label className="col" htmlFor={_.name}>
+                <label className="" htmlFor={_.name}>
                   {_.name}
                 </label>
               </div>
-              <ColorPicker title={"Stroke"} onChange={onChangeStroke(inx)} />
               <ColorPicker
+                disabled={_.extractStyles}
+                title={"Stroke"}
+                color={_.style?.stroke}
+                onChange={onChangeStroke(inx)}
+              />
+              <ColorPicker
+                disabled={_.extractStyles}
                 title={"Fill"}
+                color={_.style?.fill}
                 isLight
                 onChange={onChangeFill(inx)}
               />
@@ -239,35 +324,90 @@ const Example6 = (props) => {
       </div>
       <h4>Add Layer (+) </h4>
       <form onSubmit={addLayer}>
-        <div className="col-md-10 col-lg-8 col-xl-6 fields">
+        <div className="col fields mb-3">
           <input
             placeholder="Layer Name"
             name="layer_name"
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
+          {form.layerType === "KML" && (
+            <div className="row ms-2">
+              <span className="mr-2">Disable Kml Styles</span>
+              <div>
+                <input
+                  className="mx-2"
+                  name="extract_styles"
+                  id="extract_styles1"
+                  type="radio"
+                  value={1}
+                  checked={!form.hasStyles}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, hasStyles: false }))
+                  }
+                />
+                <label htmlFor="extract_styles1">Yes</label>
+                <input
+                  className="mx-2"
+                  name="extract_styles"
+                  id="extract_styles0"
+                  type="radio"
+                  value={0}
+                  checked={form.hasStyles}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, hasStyles: true }))
+                  }
+                />
+                <label htmlFor="extract_styles0">No</label>
+              </div>
+            </div>
+          )}
+
           <ColorPicker
             title="Stroke"
             name="stroke"
+            color={form.stroke || "#000000"}
+            disabled={form.hasStyles}
             onChange={(color) => setForm({ ...form, stroke: color })}
           />
           <ColorPicker
             title="Fill"
             isLight
             name="fill"
+            color={form.fill || "rgb(0,0,0, 0.4)"}
+            disabled={form.hasStyles}
             onChange={(color) => setForm({ ...form, fill: color })}
           />
+
           <input
             type="file"
             name="geojson_file"
-            onChange={(e) => setForm({ ...form, file: e.target.files[0] })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                file: e.target.files[0],
+                isDragged: false,
+                layerType: getLayerType(e.target.files[0]),
+                hasStyles: getLayerType(e.target.files[0]) === "KML",
+                fill:
+                  (form.fill !== "#000000" && form.fill) || "rgb(0,0,0, 0.4)",
+              })
+            }
           />
           <button className="btn btn-outline-primary btn-plus">
             <i className="fas fa-plus" />
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-warning ms-2"
+            onClick={() => setForm({})}
+          >
+            <i className="fas fa-redo" />
           </button>
           {form.file && (
             <VectorLayer
               map={map}
               source={formLayerSource}
+              layerType={getLayerType(form.file)}
               visible
               style={{ stroke: form.stroke, fill: form.fill }}
             />

@@ -22,23 +22,31 @@
 }
 .example-6 .options .opt{
  display: flex;
- justify-content: center;
+ justify-content: start;
  align-items: center;
- max-width: 15rem;
+ flex-wrap: wrap;
+ /* max-width: 15rem; */
 }
 .example-6 .options .opt > * {
-  flex: 1 0 0;
+  /* flex: 1 0 0; */
+  margin-right: 0.5rem;
+}
+
+.example-6 .options .opt div > label{
+  /* padding-top: 6px; */
+  width: 10rem;
+  margin-left: 0.2rem;
+  /* text-overflow: ellipsis;
+  white-space: nowrap; */
+  /* overflow: hidden; */
 }
 
 .example-6 .fields{
   display: flex;
-  justify-content: center;
+  justify-content: start;
   align-items: center;
+  flex-wrap: wrap;
   /* max-width: 15rem; */
-}
-
-.example-6 .fields > * {
-  flex: 1 0 0;
 }
 
 .example-6 .btn-plus{
